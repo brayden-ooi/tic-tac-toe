@@ -3,12 +3,13 @@ package main
 import (
 	"errors"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 type Game struct {
-	state [3][3]string
-	// p1     uuid.UUID
-	// p2     uuid.UUID
+	id     string
+	state  [3][3]string
 	status GameStatus
 	result string // winner | "stale"
 }
@@ -20,13 +21,26 @@ const (
 	GameStatusCompleted GameStatus = "completed"
 )
 
-func CreateGame() Game {
+func CreateGame(db *DB) (Game, error) {
 	var state [3][3]string
 
-	return Game{
+	id := (uuid.New()).String()
+
+	if id == "" {
+		return Game{}, errors.New("id generation failed")
+	}
+
+	if _, ok := db.games[id]; ok {
+		return Game{}, errors.New("duplicate id detected")
+	}
+
+	db.games[id] = Game{
+		id:     id,
 		state:  state,
 		status: GameStatusPlaying,
 	}
+
+	return db.games[id], nil
 }
 
 func (game *Game) Move(s string, x, y int) *Game {
