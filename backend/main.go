@@ -5,10 +5,26 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/BrayOOi/tic-tac-toe/pkg/websocket"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 )
+
+func initWS(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {
+	ws, err := websocket.Upgrade(w, r)
+
+	if err != nil {
+		log.Print("upgrade:", err)
+	}
+
+	client := &websocket.Client{
+		Conn: ws,
+		Pool: pool,
+	}
+
+	client.Read()
+}
 
 func main() {
 	godotenv.Load()
@@ -18,8 +34,8 @@ func main() {
 		log.Fatal("PORT is not found in the env file")
 	}
 
-	// set up kvStore
-	db := initDB()
+	pool := websocket.NewPool()
+	go pool.Start()
 
 	router := chi.NewRouter()
 
@@ -36,8 +52,9 @@ func main() {
 	v1Router.Get("/health", handlerReadiness)
 
 	// game
-	v1Router.Post("/game/create", db.handlerCreateGame)
-	v1Router.Post("/game/get", db.handlerGetGame)
+	v1Router.Get("/game", func(w http.ResponseWriter, r *http.Request) {
+		initWS(pool, w, r)
+	})
 
 	router.Mount("/v1", v1Router)
 
