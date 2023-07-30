@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"errors"
@@ -8,10 +8,10 @@ import (
 )
 
 type Game struct {
-	id     string
-	state  [3][3]string
-	status GameStatus
-	result string // winner | "stale"
+	Id     string       `json:"id"`
+	State  [3][3]string `json:"state"`
+	Status GameStatus   `json:"status"`
+	Result string       `json:"result"` // winnter | "stale"
 }
 
 type GameStatus string
@@ -21,30 +21,24 @@ const (
 	GameStatusCompleted GameStatus = "completed"
 )
 
-func CreateGame(db *DB) (Game, error) {
+func NewGame() (string, Game, error) {
 	var state [3][3]string
 
 	id := (uuid.New()).String()
 
 	if id == "" {
-		return Game{}, errors.New("id generation failed")
+		return "", Game{}, errors.New("id generation failed")
 	}
 
-	if _, ok := db.games[id]; ok {
-		return Game{}, errors.New("duplicate id detected")
-	}
-
-	db.games[id] = Game{
-		id:     id,
-		state:  state,
-		status: GameStatusPlaying,
-	}
-
-	return db.games[id], nil
+	return id, Game{
+		Id:     id,
+		State:  state,
+		Status: GameStatusPlaying,
+	}, nil
 }
 
 func (game *Game) Move(s string, x, y int) *Game {
-	if game.status != GameStatusPlaying {
+	if game.Status != GameStatusPlaying {
 		log.Fatal(errors.New("game has ended"))
 		// return nil, errors.New("game has ended")
 	}
@@ -54,19 +48,19 @@ func (game *Game) Move(s string, x, y int) *Game {
 		// return nil, errors.New("move not allowed")
 	}
 
-	if game.state[y][x] != "" {
+	if game.State[y][x] != "" {
 		log.Fatal(errors.New("cell already taken"))
 		// return nil, errors.New("cell already taken")
 	}
 
-	game.state[y][x] = s
+	game.State[y][x] = s
 
 	if winner := game.CheckWin(); winner != "" {
-		game.status = GameStatusCompleted
-		game.result = winner
+		game.Status = GameStatusCompleted
+		game.Result = winner
 	} else if isStale := game.CheckStale(); isStale {
-		game.status = GameStatusCompleted
-		game.result = "stale"
+		game.Status = GameStatusCompleted
+		game.Result = "stale"
 	}
 
 	return game
@@ -74,7 +68,7 @@ func (game *Game) Move(s string, x, y int) *Game {
 
 func (game *Game) CheckWin() string {
 	// check if row line
-	for _, r := range game.state {
+	for _, r := range game.State {
 		cellTaken := r[0]
 
 		if cellTaken == "" {
@@ -100,19 +94,19 @@ func (game *Game) CheckWin() string {
 
 	// check if col line
 	for x := 0; x < 3; x++ {
-		cellTaken := game.state[0][x]
+		cellTaken := game.State[0][x]
 
 		if cellTaken == "" {
 			continue
 		}
 
 		for y := 1; y < 3; y++ {
-			if game.state[y][x] == "" {
+			if game.State[y][x] == "" {
 				cellTaken = ""
 				break
 			}
 
-			if cellTaken != game.state[y][x] {
+			if cellTaken != game.State[y][x] {
 				cellTaken = ""
 				break
 			}
@@ -124,21 +118,21 @@ func (game *Game) CheckWin() string {
 	}
 
 	// check diagonal
-	if game.state[0][0] != "" && game.state[0][0] == game.state[1][1] && game.state[0][0] == game.state[2][2] {
-		return game.state[0][0]
+	if game.State[0][0] != "" && game.State[0][0] == game.State[1][1] && game.State[0][0] == game.State[2][2] {
+		return game.State[0][0]
 	}
 
-	if game.state[0][2] != "" && game.state[0][2] == game.state[1][1] && game.state[0][2] == game.state[2][0] {
-		return game.state[0][2]
+	if game.State[0][2] != "" && game.State[0][2] == game.State[1][1] && game.State[0][2] == game.State[2][0] {
+		return game.State[0][2]
 	}
 
 	return ""
 }
 
 func (game *Game) CheckStale() bool {
-	for y, r := range game.state {
+	for y, r := range game.State {
 		for x := range r {
-			if game.state[y][x] == "" {
+			if game.State[y][x] == "" {
 				return false
 			}
 		}
@@ -150,10 +144,10 @@ func (game *Game) CheckStale() bool {
 func (game *Game) Print() string {
 	var output = "\n"
 
-	for y, r := range game.state {
+	for y, r := range game.State {
 		for x, cell := range r {
 			if cell != "" {
-				output += game.state[y][x]
+				output += game.State[y][x]
 			} else {
 				output += " "
 			}
