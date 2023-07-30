@@ -11,7 +11,7 @@ type Game struct {
 	Id     string       `json:"id"`
 	State  [3][3]string `json:"state"`
 	Status GameStatus   `json:"status"`
-	Result string       `json:"result"` // winnter | "stale"
+	Result string       `json:"result"` // winner | "stale"
 }
 
 type GameStatus string
