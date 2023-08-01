@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { INITIAL_STATE, store, toggleModalOff } from '../store';
+  import { INITIAL_STATE, modalStore, toggleModalOff } from '../store/modal';
 
   // modal state
-  let modalState = INITIAL_STATE.modal;
+  let modalState = INITIAL_STATE;
 
-  store.subscribe((store) => {
-    modalState = store.modal;
+  modalStore.subscribe((store) => {
+    modalState = store;
   });
 
   let dialogElement: HTMLDialogElement;

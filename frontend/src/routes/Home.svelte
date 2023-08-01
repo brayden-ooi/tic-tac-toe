@@ -1,26 +1,21 @@
 <script lang="ts">
-  import Modal from '../lib/Modal.svelte';
-  import { toggleModal } from '../store';
+  import { createGame, joinGame } from '../store/game';
+  import { toggleModal } from '../store/modal';
 
-  async function createGame() {
-    try {
-      const res = await fetch('http://localhost:8000/v1/game/create', {
-        method: 'POST',
-      });
-  
-      const data = await res.json();
+  let input = "";
 
-    } catch (e) {
+  function submitJoinRequest(id: string) {
+    if (!id.length) {
       toggleModal({
         title: 'Error!',
-        description: 'Something went wrong!',
+        description: 'Please enter a valid game ID!',
         status: 'error'
       });
+
+      return;
     }
-  }
 
-  async function joinGame() {
-
+    return joinGame(id);
   }
 </script>
 
@@ -28,5 +23,7 @@
   <h1>Welcome to tic-tac-toe!</h1>
 
   <button on:click={createGame}>Create game</button>
-  <button on:click={joinGame}>Join game</button>
+  <button on:click={() => submitJoinRequest(input)}>Join game</button>
+
+  <input id="input" type="text" bind:value={input}>
 </main>
