@@ -1,30 +1,15 @@
 import { writable, get } from 'svelte/store';
 import { toggleModal } from './modal';
-import type { GamePayloadType } from '../types/game';
 import { gameStore } from './game';
+import { isWSMessage, type createAction } from '../types/websocket';
 
 export type WSType = {
   ws: WebSocket | null,
   state: number,
 }
 
-export type WSMessageType = {
-  type: number;
-  body: GamePayloadType;
-};
-
 // constants
 const WS_URL = "ws://localhost:8000/v1/game";
-export const CREATE_GAME = () => JSON.stringify({ type: 'create', payload: '' });
-export const JOIN_GAME = (id: string) => JSON.stringify({ type: 'join', payload: id });
-
-const isWSMessage = (data: unknown): data is WSMessageType => {
-  if (typeof data === 'object' && 'type' in data) {
-    return true;
-  }
-
-  return false;
-}
 
 const INITIAL_STATE: WSType = {
   ws: null,

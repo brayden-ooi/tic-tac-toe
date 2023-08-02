@@ -1,14 +1,17 @@
 <script lang="ts">
-  import type { stateType } from '../store';
+  import type { gameType } from '../store/game';
 
-  export let state: stateType["game"]["state"] = Array(3).fill(Array(3).fill(''));
+  export let state: gameType["state"] = Array(3).fill(Array(3).fill(''));
+  export let handleUpdate = (x: number, y: number) => {};
 
 </script>
 
 <div class="board-container">
-  {#each state as row}
-    {#each row as col}
-      <div class="board-cell">
+  {#each state as row, y}
+    {#each row as col, x}
+      <div
+        class="board-cell"
+        on:click={() => handleUpdate(x, y)}>
         <span>{col}</span>
       </div>
     {/each}

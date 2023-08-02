@@ -1,6 +1,6 @@
 <script lang="ts">
   import Board from "../lib/Board.svelte";
-  import { INITIAL_STATE, gameStore } from "../store/game";
+  import { INITIAL_STATE, gameStore, updateGame } from "../store/game";
 
   let gameState = INITIAL_STATE;
 
@@ -18,6 +18,9 @@
     </div>
   {/if}
 
-  <Board state={gameState.state} />
+  <Board
+    state={gameState.state}
+    handleUpdate={updateGame}
+  />
 </main>
 
