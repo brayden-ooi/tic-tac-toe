@@ -18,8 +18,6 @@ export const gameStore = writable(INITIAL_STATE);
 const sendServer = (ws: WebSocket, message: messageType) => ws.send(JSON.stringify(message));
 
 export function createGame() {
-  openSocket();
-
   const unsub = WSStore.subscribe(({ ws, state }) => {
     if (!ws) {
       openSocket();

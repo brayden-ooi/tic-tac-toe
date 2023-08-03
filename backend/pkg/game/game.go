@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	"log"
 
 	"github.com/google/uuid"
 )
@@ -37,20 +36,17 @@ func NewGame() (string, Game, error) {
 	}, nil
 }
 
-func (game *Game) Move(s string, x, y int) *Game {
+func (game *Game) Move(s string, x, y int) (*Game, error) {
 	if game.Status != GameStatusPlaying {
-		log.Fatal(errors.New("game has ended"))
-		// return nil, errors.New("game has ended")
+		return nil, errors.New("game has ended")
 	}
 
 	if x < 0 || x > 2 || y < 0 || y > 2 {
-		log.Fatal(errors.New("move not allowed"))
-		// return nil, errors.New("move not allowed")
+		return nil, errors.New("move not allowed")
 	}
 
 	if game.State[y][x] != "" {
-		log.Fatal(errors.New("cell already taken"))
-		// return nil, errors.New("cell already taken")
+		return nil, errors.New("cell already taken")
 	}
 
 	game.State[y][x] = s
@@ -63,7 +59,7 @@ func (game *Game) Move(s string, x, y int) *Game {
 		game.Result = "stale"
 	}
 
-	return game
+	return game, nil
 }
 
 func (game *Game) CheckWin() string {

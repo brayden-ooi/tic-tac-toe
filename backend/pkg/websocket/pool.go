@@ -18,6 +18,11 @@ type Pool struct {
 	Games   map[string][]*Client
 }
 
+var gameSymbol = map[int]string{
+	0: "O",
+	1: "X",
+}
+
 func NewPool() *Pool {
 	return &Pool{
 		Message: make(chan ActionWClient),
@@ -46,6 +51,15 @@ func (p *Pool) getGame(id string) (*game.Game, error) {
 	return gamePtr, nil
 }
 
+func (p *Pool) getPlayerSymbol(c *Client, id string) (string, error) {
+	for p, v := range p.Games[id] {
+		if v == c {
+			return gameSymbol[p], nil
+		}
+	}
+	return "", errors.New("no player found")
+}
+
 func (pool *Pool) Start() {
 	for {
 		select {
@@ -69,7 +83,13 @@ func (pool *Pool) Start() {
 				message.c.RespondJSON(gameIns)
 
 			} else if message.act.Type == "join" {
-				clientArr, ok := pool.Games[message.act.Payload]
+				id, ok := message.act.Payload.(string)
+				if !ok {
+					message.c.RespondError("unrecognized payload format")
+					break
+				}
+
+				clientArr, ok := pool.Games[id]
 
 				// validate if game id is valid
 				if !ok {
@@ -84,7 +104,7 @@ func (pool *Pool) Start() {
 				}
 
 				// try grabbing game ref
-				gamePtr, err := pool.getGame(message.act.Payload)
+				gamePtr, err := pool.getGame(id)
 				if err != nil {
 					message.c.RespondError(err.Error())
 					break
@@ -92,11 +112,41 @@ func (pool *Pool) Start() {
 
 				// add Client to game and send game state
 				pool.Clients[message.c] = gamePtr
-				pool.Games[message.act.Payload] = append(pool.Games[message.act.Payload], message.c)
+				pool.Games[id] = append(pool.Games[id], message.c)
 
 				message.c.RespondJSON(&gamePtr)
+			} else if message.act.Type == "update" {
+				x, y, err := GetJoinPayload(message.act.Payload)
+				if err != nil {
+					message.c.RespondError(err.Error())
+					break
+				}
+
+				// update the right game
+				game, ok := pool.Clients[message.c]
+				if !ok {
+					fmt.Println(message.c, pool)
+					message.c.RespondError("no game registered")
+					break
+				}
+
+				symbol, err := pool.getPlayerSymbol(message.c, game.Id)
+				if err != nil {
+					message.c.RespondError("no game registered 2")
+					break
+				}
+
+				nextGame, err := game.Move(symbol, x, y)
+				if err != nil {
+					message.c.RespondError(err.Error())
+					break
+				}
+
+				for _, client := range pool.Games[game.Id] {
+					client.RespondJSON(&nextGame)
+				}
 			} else {
-				fmt.Println("game updated!")
+				message.c.RespondError("unrecognized payload")
 			}
 		}
 	}

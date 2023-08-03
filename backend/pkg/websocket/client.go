@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -15,8 +16,8 @@ type Client struct {
 
 // inbound message format
 type Action struct {
-	Type    string `json:"type"`
-	Payload string `json:"payload"`
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
 }
 
 // outbound message format
@@ -49,4 +50,23 @@ func (c *Client) RespondError(err string) {
 
 func (c *Client) RespondJSON(payload interface{}) {
 	c.Conn.WriteJSON(Message{Type: 1, Body: payload})
+}
+
+func GetJoinPayload(payload interface{}) (int, int, error) {
+	arr, ok := payload.([]interface{})
+	if !ok {
+		return 0, 0, errors.New("unrecognized payload format")
+	}
+
+	x, ok := arr[0].(float64)
+	if !ok {
+		return 0, 0, errors.New("unrecognized payload format")
+	}
+
+	y, ok := arr[1].(float64)
+	if !ok {
+		return 0, 0, errors.New("unrecognized payload format")
+	}
+
+	return int(x), int(y), nil
 }
