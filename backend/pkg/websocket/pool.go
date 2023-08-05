@@ -12,10 +12,15 @@ type ActionWClient struct {
 	c   *Client
 }
 
+type Session struct {
+	PlayerToMove *Client
+	Players      []*Client
+}
+
 type Pool struct {
 	Message chan ActionWClient
 	Clients map[*Client]*game.Game
-	Games   map[string][]*Client
+	Games   map[string]Session
 }
 
 var gameSymbol = map[int]string{
@@ -27,22 +32,22 @@ func NewPool() *Pool {
 	return &Pool{
 		Message: make(chan ActionWClient),
 		Clients: make(map[*Client]*game.Game),
-		Games:   make(map[string][]*Client),
+		Games:   make(map[string]Session),
 	}
 }
 
 func (p *Pool) getGame(id string) (*game.Game, error) {
-	p1, ok := p.Games[id]
+	session, ok := p.Games[id]
 
 	if !ok {
 		return nil, errors.New("invalid id")
 	}
 
-	if len(p1) != 1 {
+	if len(session.Players) != 1 {
 		return nil, errors.New("invalid id")
 	}
 
-	gamePtr, ok := p.Clients[p1[0]]
+	gamePtr, ok := p.Clients[session.Players[0]]
 
 	if !ok {
 		return nil, errors.New("invalid id")
@@ -52,7 +57,7 @@ func (p *Pool) getGame(id string) (*game.Game, error) {
 }
 
 func (p *Pool) getPlayerSymbol(c *Client, id string) (string, error) {
-	for p, v := range p.Games[id] {
+	for p, v := range p.Games[id].Players {
 		if v == c {
 			return gameSymbol[p], nil
 		}
@@ -79,7 +84,7 @@ func (pool *Pool) Start() {
 
 				// update the pool
 				pool.Clients[message.c] = &gameIns
-				pool.Games[id] = []*Client{message.c}
+				pool.Games[id] = Session{PlayerToMove: message.c, Players: []*Client{message.c}}
 				message.c.RespondJSON(gameIns)
 
 			} else if message.act.Type == "join" {
@@ -89,7 +94,7 @@ func (pool *Pool) Start() {
 					break
 				}
 
-				clientArr, ok := pool.Games[id]
+				session, ok := pool.Games[id]
 
 				// validate if game id is valid
 				if !ok {
@@ -98,7 +103,7 @@ func (pool *Pool) Start() {
 				}
 
 				// validate if game already has two players
-				if len(clientArr) != 1 {
+				if len(session.Players) != 1 {
 					message.c.RespondError("cannot join game")
 					break
 				}
@@ -112,7 +117,9 @@ func (pool *Pool) Start() {
 
 				// add Client to game and send game state
 				pool.Clients[message.c] = gamePtr
-				pool.Games[id] = append(pool.Games[id], message.c)
+				playerArr := pool.Games[id].Players
+				playerArr = append(playerArr, message.c)
+				pool.Games[id] = Session{PlayerToMove: pool.Games[id].PlayerToMove, Players: playerArr}
 
 				message.c.RespondJSON(&gamePtr)
 			} else if message.act.Type == "update" {
@@ -122,7 +129,7 @@ func (pool *Pool) Start() {
 					break
 				}
 
-				// update the right game
+				// validate if the game exist
 				game, ok := pool.Clients[message.c]
 				if !ok {
 					fmt.Println(message.c, pool)
@@ -130,9 +137,23 @@ func (pool *Pool) Start() {
 					break
 				}
 
+				// validate if the player is registered
 				symbol, err := pool.getPlayerSymbol(message.c, game.Id)
 				if err != nil {
 					message.c.RespondError("no game registered 2")
+					break
+				}
+
+				// validate if there is enough players
+				if len(pool.Games[game.Id].Players) != 2 {
+					message.c.RespondError("cannot start the game")
+					break
+				}
+
+				// validate if the player should make the move
+				playerToMove := pool.Games[game.Id].PlayerToMove
+				if playerToMove != message.c {
+					message.c.RespondError("another player has yet to make a move")
 					break
 				}
 
@@ -142,7 +163,13 @@ func (pool *Pool) Start() {
 					break
 				}
 
-				for _, client := range pool.Games[game.Id] {
+				for _, client := range pool.Games[game.Id].Players {
+					// update player to move
+					if playerToMove != client {
+						nextSession := Session{PlayerToMove: client, Players: pool.Games[game.Id].Players}
+						pool.Games[game.Id] = nextSession
+					}
+
 					client.RespondJSON(&nextGame)
 				}
 			} else {
