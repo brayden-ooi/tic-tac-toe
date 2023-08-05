@@ -2,15 +2,13 @@ import { get, writable } from 'svelte/store';
 import { WSStore, openSocket } from './websocket';
 import type { messageType } from '../types/websocket';
 import { toggleModal } from './modal';
+import type { GamePayloadType } from '../types/game';
 
-export type gameType = {
-  id: string | null;
-  state: Array<Array<string>> | null;
-};
-
-export const INITIAL_STATE: gameType = {
+export const INITIAL_STATE: GamePayloadType = {
   id: null,
   state: null,
+  status: 'playing',
+  result: ''
 };
 
 export const gameStore = writable(INITIAL_STATE);

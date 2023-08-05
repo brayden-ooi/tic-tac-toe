@@ -43,9 +43,7 @@ export const openSocket = () => {
     if (isWSMessage(parsedMsg)) {
       switch (parsedMsg.type) {
         case 1: {
-          const { id, state } = parsedMsg.body;
-
-          gameStore.update(() => ({ id, state }));
+          gameStore.update(() => parsedMsg.body);
 
           break;
         }
